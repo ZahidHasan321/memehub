@@ -13,27 +13,31 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.navigation.NavController
 import com.example.memehub.common.composable.BasicButton
 import com.example.memehub.common.composable.EmailField
 import com.example.memehub.common.composable.PasswordField
 import com.example.memehub.R.string as AppText
 
 @Composable
-fun LoginScreen( viewModel: LoginViewModel = hiltViewModel()){
+fun LoginScreen(viewModel: LoginViewModel = hiltViewModel()) {
     val uiState by viewModel.uiState
 
-    LoginScreenContent(uiState = uiState, onEmailChange = viewModel::onEmailChange, onPasswordChange = viewModel::onPassChange, onSignInClick = viewModel::loginUser )
+    LoginScreenContent(
+        uiState = uiState,
+        onEmailChange = viewModel::onEmailChange,
+        onPasswordChange = viewModel::onPassChange,
+        onSignInClick = viewModel::loginUser
+    )
 }
 
 @Composable
 fun LoginScreenContent(
-    modifier:Modifier = Modifier,
+    modifier: Modifier = Modifier,
     uiState: LoginUiState,
     onEmailChange: (String) -> Unit,
     onPasswordChange: (String) -> Unit,
     onSignInClick: () -> Unit
-){
+) {
 
     Column(
         modifier = modifier
@@ -43,11 +47,25 @@ fun LoginScreenContent(
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        EmailField(uiState.email, onEmailChange)
-        PasswordField(uiState.password, onPasswordChange)
+        EmailField(
+            uiState.email, onEmailChange,
+            Modifier
+                .fillMaxWidth()
+                .padding(16.dp, 4.dp)
+        )
+        PasswordField(
+            uiState.password,
+            onPasswordChange,
+            Modifier
+                .fillMaxWidth()
+                .padding(16.dp, 4.dp)
+        )
 
-        BasicButton(AppText.sign_in, Modifier.fillMaxWidth().padding(16.dp, 8.dp)) { onSignInClick() }
-
-
+        BasicButton(
+            AppText.sign_in,
+            Modifier
+                .fillMaxWidth()
+                .padding(16.dp, 8.dp)
+        ) { onSignInClick() }
     }
 }
