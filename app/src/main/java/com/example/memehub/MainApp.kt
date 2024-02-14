@@ -1,11 +1,6 @@
 package com.example.memehub
 
 import androidx.annotation.StringRes
-import androidx.compose.animation.AnimatedContentTransitionScope
-import androidx.compose.animation.EnterTransition
-import androidx.compose.animation.core.AnimationSpec
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.slideInHorizontally
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.ScaffoldState
 import androidx.compose.material.icons.Icons
@@ -40,7 +35,9 @@ import com.example.memehub.screens.discovery.DiscoverScreen
 import com.example.memehub.screens.home.HomeScreen
 import com.example.memehub.screens.login.LoginScreen
 import com.example.memehub.screens.profile.ProfileScreen
+import com.example.memehub.screens.signup.SignupScreen
 import com.example.memehub.ui.theme.MemehubTheme
+import com.google.firebase.auth.FirebaseUser
 import kotlinx.coroutines.CoroutineScope
 
 sealed class Screen(val route: String, val icon: ImageVector, @StringRes val resourceId: Int) {
@@ -56,52 +53,53 @@ val items = listOf(
 )
 
 @Composable
-fun MainApp() {
+fun MainApp(user: FirebaseUser?) {
     MemehubTheme {
         Surface(modifier = Modifier, color = MaterialTheme.colorScheme.background) {
             val appState = rememberAppState()
             Scaffold(
                 bottomBar = {
-                    val navBackStackEntry by appState.navController.currentBackStackEntryAsState()
-                    val currentDestination = navBackStackEntry?.destination
+                    if(user != null) {
+                        val navBackStackEntry by appState.navController.currentBackStackEntryAsState()
+                        val currentDestination = navBackStackEntry?.destination
 
-                    BottomAppBar(
-                        modifier = Modifier
-                    ) {
-                        items.forEach { screen ->
-                            NavigationBarItem(
-                                selected = currentDestination?.hierarchy?.any { it.route == screen.route } == true,
-                                label = { Text(text = stringResource(id = screen.resourceId)) },
-                                onClick = {
-                                    appState.navController.navigate(screen.route) {
-                                        // Pop up to the start destination of the graph to
-                                        // avoid building up a large stack of destinations
-                                        // on the back stack as users select items
-                                        popUpTo(appState.navController.graph.findStartDestination().id) {
-                                            saveState = true
+                        BottomAppBar(
+                            modifier = Modifier
+                        ) {
+                            items.forEach { screen ->
+                                NavigationBarItem(
+                                    selected = currentDestination?.hierarchy?.any { it.route == screen.route } == true,
+                                    label = { Text(text = stringResource(id = screen.resourceId)) },
+                                    onClick = {
+                                        appState.navController.navigate(screen.route) {
+                                            // Pop up to the start destination of the graph to
+                                            // avoid building up a large stack of destinations
+                                            // on the back stack as users select items
+                                            popUpTo(appState.navController.graph.findStartDestination().id) {
+                                                saveState = true
+                                            }
+                                            // Avoid multiple copies of the same destination when
+                                            // re-selecting the same item
+                                            launchSingleTop = true
+                                            // Restore state when reselecting a previously selected item
+                                            restoreState = true
                                         }
-                                        // Avoid multiple copies of the same destination when
-                                        // re-selecting the same item
-                                        launchSingleTop = true
-                                        // Restore state when reselecting a previously selected item
-                                        restoreState = true
+                                    },
+                                    icon = {
+                                        Icon(
+                                            imageVector = screen.icon,
+                                            contentDescription = null
+                                        )
                                     }
-                                },
-                                icon = {
-                                    Icon(
-                                        imageVector = screen.icon,
-                                        contentDescription = null
-                                    )
-                                }
-                            )
+                                )
+                            }
                         }
                     }
-
                 }
             ) { innerPadding ->
                 NavHost(
                     navController = appState.navController,
-                    startDestination = "protected",
+                    startDestination = if(user != null) "protected" else "auth",
                     modifier = Modifier.padding(innerPadding)
                 ) {
                     memehubGraph(appState)
@@ -126,7 +124,11 @@ fun rememberAppState(
 fun NavGraphBuilder.memehubGraph(appState: MainAppState) {
     navigation(startDestination = LOGIN_SCREEN, route = "auth") {
         composable(LOGIN_SCREEN) {
-            LoginScreen()
+            LoginScreen(navigate = {route -> appState.navigate(route)}, openAndPopUp = { route, popUp -> appState.navigateAndPopUp(route, popUp)})
+        }
+
+        composable(SIGN_UP_SCREEN){
+            SignupScreen( openAndPopUp = { route, popUp -> appState.navigateAndPopUp(route, popUp)})
         }
     }
 
@@ -137,7 +139,7 @@ fun NavGraphBuilder.memehubGraph(appState: MainAppState) {
         composable(
             PROFILE_SCREEN,
 
-        ) { ProfileScreen(appState.navController) }
+        ) { ProfileScreen(openAndPopUp = { route, popUp -> appState.navigateAndPopUp(route, popUp)}) }
         composable(
             DISCOVER_SCREEN,
         ) { DiscoverScreen(appState.navController) }

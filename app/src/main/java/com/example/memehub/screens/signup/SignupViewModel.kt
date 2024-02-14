@@ -1,8 +1,7 @@
-package com.example.memehub.screens.login
+package com.example.memehub.screens.signup
 
-import android.app.Application
 import androidx.compose.runtime.mutableStateOf
-import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.memehub.data.model.Resource
 import com.example.memehub.data.respository.AuthRepository
@@ -12,37 +11,49 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
-class LoginViewModel @Inject constructor(private val application: Application, private val repository: AuthRepository): AndroidViewModel(application = application) {
-    var uiState = mutableStateOf(LoginUiState())
+class SignupViewModel @Inject constructor(private val repository: AuthRepository): ViewModel() {
+    var uiState = mutableStateOf(SignupUiState())
         private set
 
+    private val name
+        get() = uiState.value.name
     private val email
         get() = uiState.value.email
 
     private val password
         get() = uiState.value.password
 
+
+    private val confirmPassword
+        get() = uiState.value.confirmPassword
+
+    fun onNameChange(newValue: String){
+        uiState.value = uiState.value.copy(name = newValue)
+    }
+
     fun onEmailChange(newValue: String){
         uiState.value = uiState.value.copy(email = newValue)
     }
 
-    fun onPassChange(newValue: String){
+    fun onPasswordChange(newValue: String){
         uiState.value = uiState.value.copy(password = newValue)
     }
 
-    fun loginUser() = viewModelScope.launch {
-        repository.loginUser(email, password).collectLatest { result ->
+    fun onConfirmPasswordChange(newValue: String){
+        uiState.value = uiState.value.copy(confirmPassword = newValue)
+    }
+    fun signUpUser() = viewModelScope.launch {
+        repository.registerUser(email, password).collectLatest { result ->
             when(result){
                 is Resource.Loading -> {
                     uiState.value = uiState.value.copy(isLoading = true)
                 }is Resource.Success -> {
-                    uiState.value = uiState.value.copy(isSuccess = true)
-                }
+                uiState.value = uiState.value.copy(isSuccess = true)
+            }
                 is Resource.Error -> {
                     uiState.value = uiState.value.copy(isError = true)
                 }
             }
         }
     }
-
 }

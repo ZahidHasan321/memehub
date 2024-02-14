@@ -36,14 +36,14 @@ fun BasicField(
     @StringRes text: Int,
     value: String,
     onNewValue: (String) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     OutlinedTextField(
         singleLine = true,
         modifier = modifier,
         value = value,
         onValueChange = { onNewValue(it) },
-        placeholder = { Text(stringResource(text)) }
+        placeholder = { Text(stringResource(text)) },
     )
 }
 
@@ -53,6 +53,7 @@ fun EmailField(value: String, onNewValue: (String) -> Unit, modifier: Modifier =
         singleLine = true,
         modifier = modifier,
         value = value,
+        keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Email),
         onValueChange = { onNewValue(it) },
         placeholder = { Text(stringResource(AppText.email)) },
         leadingIcon = { Icon(imageVector = Icons.Default.Email, contentDescription = "Email") }
