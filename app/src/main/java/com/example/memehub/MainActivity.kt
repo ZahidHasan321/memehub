@@ -77,19 +77,12 @@ import dagger.hilt.android.AndroidEntryPoint
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
-        val viewModel: SplashViewModel by viewModels()
-
         installSplashScreen()
-            .apply {
-                setKeepOnScreenCondition{
-                    viewModel.isLoading.value
-                }
-            }
+
         super.onCreate(savedInstanceState)
 
         setContent {
-            val user by viewModel.user.collectAsState()
-            MainApp(user = user)
+            MainApp()
         }
     }
 }

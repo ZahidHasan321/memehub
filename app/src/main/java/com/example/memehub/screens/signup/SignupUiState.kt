@@ -8,4 +8,8 @@ data class SignupUiState(
     val isLoading: Boolean = false,
     val isSuccess: Boolean = false,
     val isError: Boolean = false,
+    val errorMessage: String = "",
+    val isUsernameExists: Boolean = false,
+    val firstName: String = "",
+    val lastName: String = "",
 )

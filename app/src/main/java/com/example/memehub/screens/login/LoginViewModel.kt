@@ -30,16 +30,23 @@ class LoginViewModel @Inject constructor(private val application: Application, p
         uiState.value = uiState.value.copy(password = newValue)
     }
 
+    fun clearErrorState(){
+        uiState.value = uiState.value.copy(isError = false, errorMessage = "")
+    }
+
     fun loginUser() = viewModelScope.launch {
         repository.loginUser(email, password).collectLatest { result ->
             when(result){
                 is Resource.Loading -> {
                     uiState.value = uiState.value.copy(isLoading = true)
                 }is Resource.Success -> {
-                    uiState.value = uiState.value.copy(isSuccess = true)
+                    uiState.value = uiState.value.copy(isSuccess = true, isLoading = false)
                 }
                 is Resource.Error -> {
-                    uiState.value = uiState.value.copy(isError = true)
+                    uiState.value = uiState.value.copy(isError = true, isLoading = false)
+                    result.message?.let {
+                        uiState.value = uiState.value.copy(errorMessage = result.message)
+                    }
                 }
             }
         }

@@ -11,19 +11,16 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-
-class SplashViewModel(): ViewModel(){
-    private val _isLoading = MutableStateFlow(true)
-    val isLoading = _isLoading.asStateFlow()
+@HiltViewModel
+class MemehubViewModel @Inject constructor(private val firebaseAuth: FirebaseAuth): ViewModel(){
 
 
     private val _user = MutableStateFlow<FirebaseUser?>(null)
-    val user = _user.asStateFlow()
+           val user = _user.asStateFlow()
 
     init {
         viewModelScope.launch {
             _user.value = FirebaseAuth.getInstance().currentUser
-            _isLoading.value = false
         }
 
 

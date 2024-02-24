@@ -1,6 +1,16 @@
 package com.example.memehub
 
+import android.content.res.Resources
 import androidx.annotation.StringRes
+import androidx.compose.animation.AnimatedContentScope
+import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.LinearOutSlowInEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.ScaffoldState
 import androidx.compose.material.icons.Icons
@@ -9,19 +19,31 @@ import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.rememberScaffoldState
 import androidx.compose.material3.BottomAppBar
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ReadOnlyComposable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NamedNavArgument
+import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavGraphBuilder
@@ -37,13 +59,12 @@ import com.example.memehub.screens.login.LoginScreen
 import com.example.memehub.screens.profile.ProfileScreen
 import com.example.memehub.screens.signup.SignupScreen
 import com.example.memehub.ui.theme.MemehubTheme
-import com.google.firebase.auth.FirebaseUser
 import kotlinx.coroutines.CoroutineScope
 
 sealed class Screen(val route: String, val icon: ImageVector, @StringRes val resourceId: Int) {
     object Home : Screen(HOME_SCREEN, Icons.Default.Home, R.string.home)
-    object Discover : Screen(DISCOVER_SCREEN, Icons.Default.Explore, R.string.discover)
     object Profile : Screen(PROFILE_SCREEN, Icons.Default.Person, R.string.profile)
+    object Discover : Screen(DISCOVER_SCREEN, Icons.Default.Explore, R.string.discover)
 }
 
 val items = listOf(
@@ -52,20 +73,75 @@ val items = listOf(
     Screen.Profile,
 )
 
+
 @Composable
-fun MainApp(user: FirebaseUser?) {
+fun MainApp(viewModel: MemehubViewModel = hiltViewModel()) {
+    val user by viewModel.user.collectAsState()
+
     MemehubTheme {
         Surface(modifier = Modifier, color = MaterialTheme.colorScheme.background) {
             val appState = rememberAppState()
-            Scaffold(
-                bottomBar = {
-                    if(user != null) {
-                        val navBackStackEntry by appState.navController.currentBackStackEntryAsState()
-                        val currentDestination = navBackStackEntry?.destination
+            val navBackStackEntry by appState.navController.currentBackStackEntryAsState()
+            val currentDestination = navBackStackEntry?.destination
 
+            val isBottomBarVisible = navBackStackEntry?.destination?.parent?.route != "auth"
+
+            val TIME_DURATION = 500
+
+            val enterTransition: AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition =
+                {
+                    slideInHorizontally(
+                        initialOffsetX = { it },
+                        animationSpec = tween(
+                            durationMillis = TIME_DURATION,
+                            easing = LinearOutSlowInEasing
+                        )
+                    )
+                }
+
+            val exitTransition: AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition =
+                {
+                    slideOutHorizontally(
+                        targetOffsetX = { -it },
+                        animationSpec = tween(
+                            durationMillis = TIME_DURATION,
+                            easing = LinearOutSlowInEasing
+                        )
+                    )
+                }
+
+            val popEnterTransition: AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition =
+                {
+                    slideInHorizontally(
+                        initialOffsetX = { -it },
+                        animationSpec = tween(
+                            durationMillis = TIME_DURATION,
+                            easing = LinearOutSlowInEasing
+                        ) 
+                    )
+                }
+
+            val popExitTransition: AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition =
+                {
+                    slideOutHorizontally(
+                        targetOffsetX = { it },
+                        animationSpec = tween(
+                            durationMillis = TIME_DURATION,
+                            easing = LinearOutSlowInEasing
+                        )
+                    )
+                }
+
+            Scaffold(
+                snackbarHost = {
+                    SnackbarHost(hostState = appState.snackbarHostState)
+                },
+                bottomBar = {
+                    if (isBottomBarVisible) {
                         BottomAppBar(
-                            modifier = Modifier
-                        ) {
+                            modifier = Modifier,
+
+                            ) {
                             items.forEach { screen ->
                                 NavigationBarItem(
                                     selected = currentDestination?.hierarchy?.any { it.route == screen.route } == true,
@@ -99,10 +175,16 @@ fun MainApp(user: FirebaseUser?) {
             ) { innerPadding ->
                 NavHost(
                     navController = appState.navController,
-                    startDestination = if(user != null) "protected" else "auth",
-                    modifier = Modifier.padding(innerPadding)
+                    startDestination = if (user != null) "protected" else "auth",
+                    modifier = Modifier.padding(innerPadding),
                 ) {
-                    memehubGraph(appState)
+                    memehubGraph(
+                        appState,
+                        enterTransition,
+                        exitTransition,
+                        popEnterTransition,
+                        popExitTransition
+                    )
                 }
             }
         }
@@ -115,33 +197,80 @@ fun MainApp(user: FirebaseUser?) {
 fun rememberAppState(
     scaffoldState: ScaffoldState = rememberScaffoldState(),
     navController: NavHostController = rememberNavController(),
+    snackbarHostState: SnackbarHostState = SnackbarHostState(),
+    resources: Resources = resources(),
     coroutineScope: CoroutineScope = rememberCoroutineScope()
 ) =
-    remember(scaffoldState, navController, coroutineScope) {
-        MainAppState(scaffoldState, navController, coroutineScope)
+    remember(scaffoldState, navController, snackbarHostState, resources, coroutineScope) {
+        MainAppState(scaffoldState, navController, snackbarHostState, coroutineScope, resources)
     }
 
-fun NavGraphBuilder.memehubGraph(appState: MainAppState) {
+@Composable
+@ReadOnlyComposable
+fun resources(): Resources {
+    LocalConfiguration.current
+    return LocalContext.current.resources
+}
+
+
+fun NavGraphBuilder.memehubGraph(
+    appState: MainAppState,
+    enterTransition: AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition,
+    exitTransition: AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition,
+    popEnterTransition: AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition,
+    popExitTransition: AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition
+) {
     navigation(startDestination = LOGIN_SCREEN, route = "auth") {
         composable(LOGIN_SCREEN) {
-            LoginScreen(navigate = {route -> appState.navigate(route)}, openAndPopUp = { route, popUp -> appState.navigateAndPopUp(route, popUp)})
+            LoginScreen(
+                appState.coroutineScope,
+                appState.snackbarHostState,
+                navigate = { route -> appState.navigate(route) },
+                openAndPopUp = { route, popUp -> appState.navigateAndPopUp(route, popUp) })
         }
 
-        composable(SIGN_UP_SCREEN){
-            SignupScreen( openAndPopUp = { route, popUp -> appState.navigateAndPopUp(route, popUp)})
+        composable(SIGN_UP_SCREEN) {
+            SignupScreen(
+                appState.navController,
+                appState.coroutineScope,
+                appState.snackbarHostState,
+                openAndPopUp = { route, popUp -> appState.navigateAndPopUp(route, popUp) })
         }
     }
 
-    navigation(startDestination = HOME_SCREEN, route = "protected") {
+    navigation(
+        startDestination = HOME_SCREEN,
+        route = "protected"
+    ) {
         composable(
-            HOME_SCREEN
+            HOME_SCREEN,
+            enterTransition = enterTransition,
+            exitTransition = exitTransition,
+            popEnterTransition = popEnterTransition,
+            popExitTransition = popExitTransition
         ) { HomeScreen(appState.navController) }
         composable(
             PROFILE_SCREEN,
-
-        ) { ProfileScreen(openAndPopUp = { route, popUp -> appState.navigateAndPopUp(route, popUp)}) }
+            enterTransition = enterTransition,
+            exitTransition = exitTransition,
+            popEnterTransition = popEnterTransition,
+            popExitTransition = popExitTransition
+        ) {
+            ProfileScreen(
+                appState.snackbarHostState,
+                openAndPopUp = { route, popUp ->
+                    appState.navigateAndPopUp(
+                        route,
+                        popUp
+                    )
+                })
+        }
         composable(
             DISCOVER_SCREEN,
+            enterTransition = enterTransition,
+            exitTransition = exitTransition,
+            popEnterTransition = popEnterTransition,
+            popExitTransition = popExitTransition
         ) { DiscoverScreen(appState.navController) }
     }
 }
@@ -170,4 +299,34 @@ fun NavGraphBuilder.memehubGraph(appState: MainAppState) {
 //        towards = AnimatedContentTransitionScope.SlideDirection.Companion.Right,
 //        animationSpec = tween(700)
 //    )
+//}
+
+
+//snackbarHost = {
+//    SnackbarHost(snackbarHostState) {data ->
+//        val isError = (data.visuals as? SnackbarVisualsWithError)?.isError ?: false
+//        val buttonColor = if (isError) {
+//            ButtonDefaults.textButtonColors(
+//                containerColor = MaterialTheme.colorScheme.errorContainer,
+//                contentColor = MaterialTheme.colorScheme.error
+//            )
+//        } else {
+//            ButtonDefaults.textButtonColors(
+//                contentColor = MaterialTheme.colorScheme.inversePrimary
+//            )
+//        }
+//        Snackbar(
+//            modifier = Modifier
+//                .border(2.dp, MaterialTheme.colorScheme.secondary)
+//                .padding(12.dp),
+//            action = {
+//                TextButton(
+//                    onClick = { if (isError) data.dismiss() else data.performAction() },
+//                    colors = buttonColor
+//                ) { Text(data.visuals.actionLabel ?: "") }
+//            }
+//        ) {
+//            Text(data.visuals.message)
+//        }
+//    }
 //}
