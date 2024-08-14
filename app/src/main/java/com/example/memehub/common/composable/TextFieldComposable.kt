@@ -82,7 +82,7 @@ private fun PasswordField(
     value: String,
     @StringRes placeholder: Int,
     onNewValue: (String) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     var isVisible by remember { mutableStateOf(false) }
 

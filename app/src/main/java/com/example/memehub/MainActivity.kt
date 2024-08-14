@@ -1,9 +1,13 @@
 package com.example.memehub
 
+import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
+import androidx.annotation.RequiresApi
 import androidx.annotation.StringRes
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.core.tween
@@ -56,11 +60,28 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import com.example.memehub.screens.discovery.DiscoverScreen
-import com.example.memehub.screens.home.HomeScreen
-import com.example.memehub.screens.profile.ProfileScreen
+import com.example.memehub.data.model.realmModels.Post
+import com.example.memehub.data.model.realmModels.Rating
+import com.example.memehub.ui.screens.discovery.DiscoverScreen
+import com.example.memehub.ui.screens.home.HomeScreen
+import com.example.memehub.ui.screens.profile.ProfileScreen
 import com.example.memehub.ui.theme.MemehubTheme
 import dagger.hilt.android.AndroidEntryPoint
+import io.realm.kotlin.Realm
+import io.realm.kotlin.ext.query
+import io.realm.kotlin.mongodb.annotations.ExperimentalFlexibleSyncApi
+import io.realm.kotlin.mongodb.ext.subscribe
+import io.realm.kotlin.mongodb.subscriptions
+import io.realm.kotlin.mongodb.sync.WaitForSync
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
+import javax.inject.Inject
+import javax.inject.Provider
+import kotlin.concurrent.thread
 
 //sealed class Screen(val route: String, val icon: ImageVector, @StringRes val resourceId: Int) {
 //    object Home : Screen("home", Icons.Default.Home, R.string.home)
@@ -76,13 +97,40 @@ import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+
+    @Inject
+    lateinit var appInit: ApplicationInitializer
+    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
 
         super.onCreate(savedInstanceState)
 
+        enableEdgeToEdge()
+
         setContent {
             MainApp()
+        }
+
+        appInit.initRealm()
+    }
+}
+
+class ApplicationInitializer @Inject constructor(private val provideRealm: Provider<Realm>) {
+    @OptIn(ExperimentalFlexibleSyncApi::class)
+    fun initRealm() {
+        thread {
+            val threadScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+
+            threadScope.launch {
+                val realm = provideRealm.get()
+
+                realm.query<Post>().subscribe(WaitForSync.ALWAYS)
+                realm.query<Rating>().subscribe(WaitForSync.ALWAYS)
+                if(realm.subscriptions.waitForSynchronization()){
+                    Log.d("REALM_SUBSCRIBE", "realm subscription complete")
+                }
+            }
         }
     }
 }

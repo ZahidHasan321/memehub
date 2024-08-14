@@ -1,25 +1,27 @@
 package com.example.memehub
 
 import android.content.res.Resources
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.annotation.StringRes
-import androidx.compose.animation.AnimatedContentScope
 import androidx.compose.animation.AnimatedContentTransitionScope
-import androidx.compose.animation.EnterTransition
-import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.EaseIn
+import androidx.compose.animation.core.EaseOut
 import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.ScaffoldState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Explore
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.rememberScaffoldState
 import androidx.compose.material3.BottomAppBar
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBarItem
@@ -28,12 +30,11 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
@@ -41,9 +42,8 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.navigation.NamedNavArgument
-import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavGraphBuilder
@@ -53,27 +53,36 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navigation
-import com.example.memehub.screens.discovery.DiscoverScreen
-import com.example.memehub.screens.home.HomeScreen
-import com.example.memehub.screens.login.LoginScreen
-import com.example.memehub.screens.profile.ProfileScreen
-import com.example.memehub.screens.signup.SignupScreen
+import com.example.memehub.ui.screens.addItem.AddItemScreen
+import com.example.memehub.ui.screens.discovery.DiscoverScreen
+import com.example.memehub.ui.screens.favorite.FavoriteScreen
+import com.example.memehub.ui.screens.home.HomeScreen
+import com.example.memehub.ui.screens.login.LoginScreen
+import com.example.memehub.ui.screens.post.PostScreen
+import com.example.memehub.ui.screens.profile.ProfileScreen
+import com.example.memehub.ui.screens.signup.SignupScreen
 import com.example.memehub.ui.theme.MemehubTheme
 import kotlinx.coroutines.CoroutineScope
 
 sealed class Screen(val route: String, val icon: ImageVector, @StringRes val resourceId: Int) {
-    object Home : Screen(HOME_SCREEN, Icons.Default.Home, R.string.home)
-    object Profile : Screen(PROFILE_SCREEN, Icons.Default.Person, R.string.profile)
-    object Discover : Screen(DISCOVER_SCREEN, Icons.Default.Explore, R.string.discover)
+    data object Home : Screen(HOME_SCREEN, Icons.Default.Home, R.string.home)
+    data object Profile : Screen(PROFILE_SCREEN, Icons.Default.Person, R.string.profile)
+    data object Discover : Screen(DISCOVER_SCREEN, Icons.Default.Explore, R.string.discover)
+    data object Favorites : Screen(FAVORITE_SCREEN, Icons.Default.Favorite, R.string.favorite)
+
+    data object AddPost : Screen(ADD_ITEM_SCREEN, Icons.Default.Add, R.string.add_post)
 }
 
 val items = listOf(
     Screen.Home,
     Screen.Discover,
+    Screen.AddPost,
+    Screen.Favorites,
     Screen.Profile,
 )
 
 
+@RequiresApi(Build.VERSION_CODES.TIRAMISU)
 @Composable
 fun MainApp(viewModel: MemehubViewModel = hiltViewModel()) {
     val user by viewModel.user.collectAsState()
@@ -83,82 +92,46 @@ fun MainApp(viewModel: MemehubViewModel = hiltViewModel()) {
             val appState = rememberAppState()
             val navBackStackEntry by appState.navController.currentBackStackEntryAsState()
             val currentDestination = navBackStackEntry?.destination
+            val isBottomBarVisible = navBackStackEntry?.destination?.parent?.route != "auth" && currentDestination?.route != "posts/{postId}"
 
-            val isBottomBarVisible = navBackStackEntry?.destination?.parent?.route != "auth"
+            val addItemDialogState = remember {
+                mutableStateOf(false)
+            }
 
-            val TIME_DURATION = 500
-
-            val enterTransition: AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition =
-                {
-                    slideInHorizontally(
-                        initialOffsetX = { it },
-                        animationSpec = tween(
-                            durationMillis = TIME_DURATION,
-                            easing = LinearOutSlowInEasing
-                        )
-                    )
-                }
-
-            val exitTransition: AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition =
-                {
-                    slideOutHorizontally(
-                        targetOffsetX = { -it },
-                        animationSpec = tween(
-                            durationMillis = TIME_DURATION,
-                            easing = LinearOutSlowInEasing
-                        )
-                    )
-                }
-
-            val popEnterTransition: AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition =
-                {
-                    slideInHorizontally(
-                        initialOffsetX = { -it },
-                        animationSpec = tween(
-                            durationMillis = TIME_DURATION,
-                            easing = LinearOutSlowInEasing
-                        ) 
-                    )
-                }
-
-            val popExitTransition: AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition =
-                {
-                    slideOutHorizontally(
-                        targetOffsetX = { it },
-                        animationSpec = tween(
-                            durationMillis = TIME_DURATION,
-                            easing = LinearOutSlowInEasing
-                        )
-                    )
-                }
+            AddItemScreen(visible = addItemDialogState, appState.snackbarHostState)
 
             Scaffold(
                 snackbarHost = {
                     SnackbarHost(hostState = appState.snackbarHostState)
                 },
                 bottomBar = {
-                    if (isBottomBarVisible) {
+                    AnimatedVisibility(visible = isBottomBarVisible) {
                         BottomAppBar(
-                            modifier = Modifier,
-
-                            ) {
+                            tonalElevation = 10.dp,
+                            containerColor = MaterialTheme.colorScheme.background
+                        ) {
                             items.forEach { screen ->
                                 NavigationBarItem(
                                     selected = currentDestination?.hierarchy?.any { it.route == screen.route } == true,
                                     label = { Text(text = stringResource(id = screen.resourceId)) },
                                     onClick = {
-                                        appState.navController.navigate(screen.route) {
-                                            // Pop up to the start destination of the graph to
-                                            // avoid building up a large stack of destinations
-                                            // on the back stack as users select items
-                                            popUpTo(appState.navController.graph.findStartDestination().id) {
-                                                saveState = true
+                                        if (screen.route == ADD_ITEM_SCREEN) {
+                                            addItemDialogState.value = true
+                                        }
+                                        else{
+                                            appState.navController.navigate(screen.route) {
+                                                // Pop up to the start destination of the graph to
+                                                // avoid building up a large stack of destinations
+                                                // on the back stack as users select items
+                                                popUpTo(appState.navController.graph.findStartDestination().id) {
+                                                    saveState = true
+                                                }
+                                                // Avoid multiple copies of the same destination when
+                                                // re-selecting the same item
+                                                launchSingleTop = true
+                                                // Restore state when reselecting a previously selected item
+                                                restoreState = true
                                             }
-                                            // Avoid multiple copies of the same destination when
-                                            // re-selecting the same item
-                                            launchSingleTop = true
-                                            // Restore state when reselecting a previously selected item
-                                            restoreState = true
                                         }
                                     },
                                     icon = {
@@ -179,11 +152,7 @@ fun MainApp(viewModel: MemehubViewModel = hiltViewModel()) {
                     modifier = Modifier.padding(innerPadding),
                 ) {
                     memehubGraph(
-                        appState,
-                        enterTransition,
-                        exitTransition,
-                        popEnterTransition,
-                        popExitTransition
+                        appState
                     )
                 }
             }
@@ -213,12 +182,9 @@ fun resources(): Resources {
 }
 
 
+@RequiresApi(Build.VERSION_CODES.TIRAMISU)
 fun NavGraphBuilder.memehubGraph(
     appState: MainAppState,
-    enterTransition: AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition,
-    exitTransition: AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition,
-    popEnterTransition: AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition,
-    popExitTransition: AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition
 ) {
     navigation(startDestination = LOGIN_SCREEN, route = "auth") {
         composable(LOGIN_SCREEN) {
@@ -244,17 +210,9 @@ fun NavGraphBuilder.memehubGraph(
     ) {
         composable(
             HOME_SCREEN,
-            enterTransition = enterTransition,
-            exitTransition = exitTransition,
-            popEnterTransition = popEnterTransition,
-            popExitTransition = popExitTransition
         ) { HomeScreen(appState.navController) }
         composable(
             PROFILE_SCREEN,
-            enterTransition = enterTransition,
-            exitTransition = exitTransition,
-            popEnterTransition = popEnterTransition,
-            popExitTransition = popExitTransition
         ) {
             ProfileScreen(
                 appState.snackbarHostState,
@@ -265,13 +223,35 @@ fun NavGraphBuilder.memehubGraph(
                     )
                 })
         }
+        composable(FAVORITE_SCREEN) {
+            FavoriteScreen(appState.navController)
+        }
         composable(
             DISCOVER_SCREEN,
-            enterTransition = enterTransition,
-            exitTransition = exitTransition,
-            popEnterTransition = popEnterTransition,
-            popExitTransition = popExitTransition
         ) { DiscoverScreen(appState.navController) }
+
+        composable("posts/{postId}", enterTransition = {
+            fadeIn(
+                animationSpec = tween(
+                    300, easing = LinearEasing
+                )
+            ) + slideIntoContainer(
+                animationSpec = tween(300, easing = EaseIn),
+                towards = AnimatedContentTransitionScope.SlideDirection.Start
+            )
+        },
+            exitTransition = {
+                fadeOut(
+                    animationSpec = tween(
+                        300, easing = LinearEasing
+                    )
+                ) + slideOutOfContainer(
+                    animationSpec = tween(300, easing = EaseOut),
+                    towards = AnimatedContentTransitionScope.SlideDirection.End
+                )
+            }) { navBackStackEntry ->
+            PostScreen(appState.snackbarHostState,appState.navController, navBackStackEntry.arguments?.getString("postId"))
+        }
     }
 }
 

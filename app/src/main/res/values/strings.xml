@@ -1,8 +1,12 @@
 <resources>
     <string name="app_name">Memehub</string>
+    <!-- Screens -->
     <string name="home">Home</string>
     <string name="profile">Profile</string>
-    <string name="discover">discover</string>
+    <string name="discover">Discover</string>
+    <string name="favorite">Favorite</string>
+    <string name="my_posts">Posts</string>
+    <string name="add_post">Add Post</string>
 
     <!-- Common -->
     <string name="email">Email</string>

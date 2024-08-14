@@ -20,7 +20,7 @@ class MemehubViewModel @Inject constructor(private val firebaseAuth: FirebaseAut
 
     init {
         viewModelScope.launch {
-            _user.value = FirebaseAuth.getInstance().currentUser
+            _user.value = firebaseAuth.currentUser
         }
 
 

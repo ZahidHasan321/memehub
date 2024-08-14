@@ -2,7 +2,7 @@ package com.example.memehub.network
 
 import com.example.memehub.data.model.User
 import com.example.memehub.data.model.UserUpdateModel
-import com.example.memehub.data.model.UsernameResponse
+import com.example.memehub.data.model.response.UsernameResponse
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET

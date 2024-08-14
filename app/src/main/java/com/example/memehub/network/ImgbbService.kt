@@ -1,6 +1,6 @@
 package com.example.memehub.network
 
-import com.example.memehub.data.model.ImgBBResponse
+import com.example.memehub.data.model.response.ImgBBResponse
 import okhttp3.MultipartBody
 import retrofit2.Response
 import retrofit2.http.Multipart

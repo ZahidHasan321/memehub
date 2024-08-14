@@ -3,7 +3,6 @@ package com.example.memehub.di
 import com.example.memehub.data.respository.ImgbbRepositry
 import com.example.memehub.data.respository.ImgbbRepositryImpl
 import com.example.memehub.network.ImgbbService
-import com.example.memehub.network.UserService
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn

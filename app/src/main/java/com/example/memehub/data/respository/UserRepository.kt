@@ -1,7 +1,7 @@
 package com.example.memehub.data.respository
 import com.example.memehub.data.model.User
 import com.example.memehub.data.model.UserUpdateModel
-import com.example.memehub.data.model.UsernameResponse
+import com.example.memehub.data.model.response.UsernameResponse
 import retrofit2.Response
 
 interface UserRepository {

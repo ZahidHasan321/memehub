@@ -1,9 +1,8 @@
 package com.example.memehub.data.respository
 
-import android.util.Log
 import com.example.memehub.data.model.User
 import com.example.memehub.data.model.UserUpdateModel
-import com.example.memehub.data.model.UsernameResponse
+import com.example.memehub.data.model.response.UsernameResponse
 import com.example.memehub.network.UserService
 import retrofit2.Response
 import javax.inject.Inject
