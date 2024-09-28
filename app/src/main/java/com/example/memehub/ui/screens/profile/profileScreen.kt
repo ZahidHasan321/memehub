@@ -54,6 +54,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -486,7 +487,7 @@ fun ProfileScreenContent(
 
 
 
-        var rating by remember { mutableStateOf(1f) } //default rating will be 1
+        var rating by remember { mutableFloatStateOf(1f) } //default rating will be 1
 
 
 

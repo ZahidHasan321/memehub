@@ -6,12 +6,10 @@ import android.util.Log
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.memehub.data.model.UserUpdateModel
 import com.example.memehub.data.model.realmModels.Avatar
 import com.example.memehub.data.model.realmModels.Rating
 import com.example.memehub.data.model.realmModels.User
 import com.example.memehub.data.respository.ImgbbRepositry
-import com.example.memehub.data.respository.UserRepository
 import com.example.memehub.helper.uriToMultipart
 import com.google.firebase.auth.FirebaseAuth
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -19,9 +17,7 @@ import io.realm.kotlin.Realm
 import io.realm.kotlin.ext.query
 import io.realm.kotlin.query.sum
 import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import retrofit2.HttpException
